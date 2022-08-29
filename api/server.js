@@ -3,8 +3,8 @@ const cors = require("cors");
 const axios = require("axios");
 const Redis = require("redis");
 
-//localhost url, create url env for production
-const client = Redis.createClient();
+const redisClient = Redis.createClient();
+const DEFAULT_EXPIRATION = 3600;
 
 const server = express();
 
@@ -13,12 +13,21 @@ server.use(cors());
 
 server.get("/photos", async (req, res) => {
   const albumId = req.query.albumId;
-  const { data } = await axios.get(
-    "https://jsonplaceholder.typicode.com/photos",
-    { params: { albumId } }
-  );
-
-  res.status(200).json(data);
+  redisClient.get("photos", async (errors, photos) => {
+    if (errors) console.error(errors);
+    if (photos != null) {
+      console.log("caching...");
+      return res.json(JSON.parse(photos));
+    } else {
+      console.log("servering...");
+      const { data } = await axios.get(
+        "https://jsonplaceholder.typicode.com/photos",
+        { params: { albumId } }
+      );
+      redisClient.setex("photos", DEFAULT_EXPIRATION, JSON.stringify(data));
+    }
+    res.status(200).json(data);
+  });
 });
 
 server.get("/photos/:id", async (req, res) => {
