@@ -3,8 +3,16 @@ const cors = require("cors");
 const axios = require("axios");
 const redis = require("redis");
 
-const EXPIRATION_TIME = 3600;
-const client = redis.createClient();
+const EXPIRATION_TIME = 1800;
+const client = redis.createClient(
+  {
+  socket: {
+      host: process.env.REDIS_HOST,
+      port: process.env.REDIS_PORT
+  },
+  password: process.env.REDIS_PW
+}
+);
 
 const connectClient = async () => {
   await client.connect("error", (err) => {
